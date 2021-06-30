@@ -1,13 +1,14 @@
-// const db = require('../database/connection')
-// const User = db.User;
+
 const UserRepository = require('../repositories/userRepository')
 const userRepository = new UserRepository()
+const UserTokenRepository = require('../repositories/userTokenRepository')
+const userTokenRepository = new UserTokenRepository()
 
 exports.findAll = async (req, res) => {
   try {
     const listUser = await userRepository.getAll()
     res.send(listUser)
-  } catch (e) {
+  } catch (err) {
     res.status(500).send({
       message:
         err.message || "Some error occurred while retrieving tutorials."
@@ -15,7 +16,7 @@ exports.findAll = async (req, res) => {
   }
 };
 
-exports.create = async (req, res) => {
+exports.signup = async (req, res) => {
   try {
 
     if (!req.body.name) {
@@ -25,24 +26,60 @@ exports.create = async (req, res) => {
       return;
     }
 
+    let listSameUserInDb = await userRepository.getAllByConditions({email: req.body.email})
+    if (listSameUserInDb.length !== 0) {
+      res.status(400).send({
+        message: "Email is existed!"
+      });
+      return;
+    }
+
     const user = {
       name: req.body.name,
       email: req.body.email,
       avatar: req.body.avatar,
-      gender: req.body.gender
+      gender: req.body.gender,
+      password: req.body.password
     };
 
     const createdUser = await userRepository.create(user)
-    res.send(createdUser)
+    const token = await userTokenRepository.generateAuthToken(createdUser)
+    res.status(201).send({ createdUser, token })
 
   } catch (err) {
     res.status(500).send({
       message:
-        err.message || "Some error occurred while creating the Tutorial."
+        err.message || "Some error occurred while sign up."
     });
   }
-
 }
+  exports.login = async (req, res) => {
+    try {
+      const user = await userRepository.findByCredentials(req.body.email, req.body.password)
+      const token = await userTokenRepository.generateAuthToken(user)
+      res.send({ user, token })
+
+    } catch (err) {
+      res.status(500).send({
+        message:
+          err.message || "Some error occurred while log in."
+      });
+    }
+  }
+
+  exports.logout = async (req, res) => {
+    try {
+      let tokenInDb = await userTokenRepository.removeTokenByValue(req.token)
+      res.send(tokenInDb)
+    } catch {
+      res.status(500).send({
+        message:
+          err.message || "Some error occurred while log out."
+      });
+    }
+  }
+
+
 
 
 

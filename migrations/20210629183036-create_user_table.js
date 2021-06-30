@@ -16,6 +16,9 @@ module.exports = {
         type: DataTypes.BOOLEAN,
         defaultValue: 0
       },
+      password: {
+        type: Sequelize.STRING
+    }
     });
   },
 

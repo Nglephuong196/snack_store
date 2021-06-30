@@ -1,4 +1,6 @@
-module.exports = (sequelize, Sequelize) =>  {
+const bcrypt = require('bcryptjs')
+
+module.exports = (sequelize, Sequelize) => {
     const User = sequelize.define("User", {
         id: {
             type: Sequelize.UUID,
@@ -12,6 +14,18 @@ module.exports = (sequelize, Sequelize) =>  {
             type: Sequelize.BOOLEAN,
             defaultValue: 0
         },
+        password: {
+            type: Sequelize.STRING
+        }
     });
+
+    User.beforeSave(async (user, options) => {
+        console.log(user)
+        if (user.dataValues.password != user._previousDataValues.password) {
+            const hashedPassword = await bcrypt.hash(user.dataValues.password, 8);
+            user.password = hashedPassword;
+        }
+    });
+
     return User;
 };
